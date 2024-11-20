@@ -20,7 +20,7 @@ def finite_differences(x, N):
     A = np.zeros((N, N))
     b = np.zeros(N)
 
-    # Condiciones iniciales: y(1) = 2 y y'(1) = 5
+    # Condiciones iniciales: y(1) = 2 y y'(1) = 5 del PVI, aplicados a los puntos en la frontera
     A[0, 0] = 1
     b[0] = 2  # y(1) = 2
 
@@ -31,34 +31,49 @@ def finite_differences(x, N):
     # Llenar la matriz para las ecuaciones interiores (i = 2 a N-2)
     for i in range(2, N-1):
         xi = x[i]
-        # Sistema basado en la ecuación x^2 y'' + x y' + y = 0
+        #x^2 y'' + x y' + y = 0
         A[i, i-1] = xi**2 / h**2 - xi / (2 * h)
         A[i, i] = -2 * xi**2 / h**2 - 1
         A[i, i+1] = xi**2 / h**2 + xi / (2 * h)
         b[i] = 0
 
-    A[-1, -1] = 1  # Para evitar singularidades
+    A[-1, -1] = 1  #Esto evita errores en la matriz, obtenido de stackoverflow la solución del error de matrices
     b[-1] = 0
 
-    # Resolver el sistema
+    # Resuelve el sistema con una función
     y = np.linalg.solve(A, b)
     return y
 
-# Método de Adams-Bashforth para resolver y' = f(x, y)
-def ode_system(x, y):
-    return [y[1], (-y[0] - x * y[1]) / x**2]
+# Método de Adams-Bashforth
+def adams_bashforth(x, h):
+    y = np.zeros(N)
+    dy = np.zeros(N)
 
-def adams_bashforth(x):
-    # Método numérico para resolver el sistema
-    sol = solve_ivp(ode_system, [x[0], x[-1]], [2, 5], t_eval=x, method='RK45')
-    return sol.y[0]
+    # Condiciones iniciales del PVI
+    y[0] = 2
+    dy[0] = 5
 
-# Resolver con cada método
+    # Ecuación diferencial: x^2 y'' + x y' + y = 0
+    def f(x, y, dy):
+        return (-y - x * dy) / x**2
+
+    # Usar método de Euler para volver la ecuación de segundo orden en primero orden esto basandose en la forma de 2 pasos de Jain(2018)
+    dy[1] = dy[0] + h * f(x[0], y[0], dy[0])
+    y[1] = y[0] + h * dy[0]
+
+     # Usar Adams-Bashforth utilizando el algoritmo mostrado en ajer.org
+    for i in range(1, N - 1):
+        dy[i + 1] = dy[i] + h * (3 * f(x[i], y[i], dy[i]) - f(x[i - 1], y[i - 1], dy[i - 1])) / 2
+        y[i + 1] = y[i] + h * (3 * dy[i] - dy[i - 1]) / 2
+
+    return y
+
+# Llamada de funciones para cada metodo
 y_finite = finite_differences(x, N)
-y_adams = adams_bashforth(x)
+y_adams = adams_bashforth(x,h)
 y_analytical = analytical_solution(x)
 
-# Graficar los resultados de puntos (para cada uno de los métodos)
+# Graficar los resultados de puntos
 plt.figure(figsize=(15, 5))
 
 # Gráfica 1: Método de diferencias finitas
@@ -91,18 +106,3 @@ plt.grid()
 plt.tight_layout()
 plt.show()
 
-# Graficar la diferencia entre los resultados
-# Graficamos las diferencias de cada método con la solución analítica
-diff_finite = np.abs(y_finite - y_analytical)
-diff_adams = np.abs(y_adams - y_analytical)
-
-# Gráfica de barras para mostrar las diferencias
-plt.figure(figsize=(10, 6))
-plt.bar(x, diff_finite, width=0.02, label='Diferencias finitas', alpha=0.6)
-plt.bar(x, diff_adams, width=0.02, label='Adams-Bashforth', alpha=0.6)
-plt.xlabel('x')
-plt.ylabel('Diferencia')
-plt.title('Diferencia entre resultados numéricos y solución analítica')
-plt.legend()
-plt.grid()
-plt.show()

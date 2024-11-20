@@ -19,8 +19,6 @@ C2 = (5 - 2 * np.cos(np.log(10))) / np.sin(np.log(10))
 def analytical_solution(x):
     return C1 * np.cos(np.log(x)) + C2 * np.sin(np.log(x))
 
-def analytical_derivative(x):
-    return -C1 * np.sin(np.log(x)) / x + C2 * np.cos(np.log(x)) / x
 
 # Método de Diferencias Finitas
 def finite_differences(x, y_a, y_b, N):
@@ -34,7 +32,7 @@ def finite_differences(x, y_a, y_b, N):
     A[-1, -1] = 1
     b[-1] = y_b
 
-    # Ecuaciones interiores
+    # Algoritmo de diferencias finitas obtenido de GeeksForGeeks
     for i in range(1, N - 1):
         xi = x[i]
         A[i, i - 1] = xi**2 / h**2 - xi / (2 * h)
@@ -42,7 +40,7 @@ def finite_differences(x, y_a, y_b, N):
         A[i, i + 1] = xi**2 / h**2 + xi / (2 * h)
         b[i] = 0
 
-    # Resolver sistema lineal
+    # Resolución de sistema lineal con una función de python
     y = np.linalg.solve(A, b)
     return y
 
@@ -51,7 +49,7 @@ def adams_bashforth(x, y_a, dy_a, N):
     y = np.zeros(N)
     dy = np.zeros(N)
 
-    # Condiciones iniciales
+    # Condiciones iniciales del PVI 
     y[0] = y_a
     dy[0] = dy_a
 
@@ -61,20 +59,19 @@ def adams_bashforth(x, y_a, dy_a, N):
 
     # Usar el método de Adams-Bashforth (2 pasos)
     for i in range(1, N):
-        if i == 1:  # Usar método de Euler para el primer paso
+        if i == 1:  # Usar método de Euler para volver la ecuación de segundo orden en primero orden esto basandose en la forma de 2 pasos de Jain(2018)
             dy[i] = dy[i - 1] + h * f(x[i - 1], y[i - 1], dy[i - 1])
             y[i] = y[i - 1] + h * dy[i - 1]
-        else:  # Usar Adams-Bashforth para los siguientes pasos
+        else:  # Usar Adams-Bashforth utilizando el algoritmo mostrado en ajer.org
             dy[i] = dy[i - 1] + h * (3 * f(x[i - 1], y[i - 1], dy[i - 1]) - f(x[i - 2], y[i - 2], dy[i - 2])) / 2
             y[i] = y[i - 1] + h * (3 * dy[i - 1] - dy[i - 2]) / 2
 
     return y, dy
 
-# Resolver con cada método
+# llamadas a las funciones para obtener los datos para las graficas
 y_finite = finite_differences(x, y_a, analytical_solution(b), N)
 y_adams, dy_adams = adams_bashforth(x, y_a, dy_a, N)
 y_analytical = analytical_solution(x)
-dy_analytical = analytical_derivative(x)
 
 # Graficar las soluciones de y(x) en gráficos separados
 plt.figure(figsize=(18, 6))
